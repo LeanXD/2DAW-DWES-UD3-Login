@@ -9,7 +9,7 @@
 </head>
 <body>
 <center>
-<form action="/login/validar">
+<form action="/login/validar" method="POST">
 	<label>Introduce un nombre de usuario</label>
 	<input type="text" name="nameUser">
 	<br/>

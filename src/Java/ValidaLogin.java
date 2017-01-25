@@ -16,7 +16,6 @@ import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
@@ -35,8 +34,6 @@ public class ValidaLogin extends HttpServlet{
 	private static final long serialVersionUID = 1L;
 
 	private DataSource datSources;
-	private Connection conDB;
-	private Statement stat;
 	
 	public ValidaLogin(){
 		super();
@@ -45,6 +42,8 @@ public class ValidaLogin extends HttpServlet{
 	public void init(ServletConfig config) throws ServletException{
 		super.init(config);
 		ServletContext application =  config.getServletContext();
+		Connection conDB;
+		Statement stat;
     	InitialContext initCtx;
 		try {
 			initCtx = new InitialContext();
@@ -52,7 +51,8 @@ public class ValidaLogin extends HttpServlet{
 			conDB = datSources.getConnection();
 			stat = conDB.createStatement();
 	        
-
+			stat.close();
+			conDB.close();
 		
 		} catch (NamingException e) {
 			// TODO Auto-generated catch block
@@ -89,13 +89,18 @@ public class ValidaLogin extends HttpServlet{
 	public void ValidarUser(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException {
 		ResultSet result = null;
 		String error="OK";
+		Statement stat =  null;
+		Connection conDB;
 		String nombreUser = "";
 		try {
+			
 			String user = request.getParameter("nameUser");
 			String clave = request.getParameter("password");
+			conDB = datSources.getConnection();
+			stat = conDB.createStatement();
 			if(user != null && clave != null){
-			result = stat.executeQuery("SELECT * FROM LOGIN WHERE login = '"+user+"'"+"AND clave = '"+clave+"'");
-			
+			result = stat.executeQuery("SELECT * FROM logins.login WHERE login = '"+user+"'"+"AND clave = '"+clave+"'");
+
 			if(result.next()){
 				if(result.getString("clave").equals(clave)){
 					if(!result.getString("login").equals(user)){
@@ -113,7 +118,9 @@ public class ValidaLogin extends HttpServlet{
 			}else{
 				error = "Debes introducir un usuario y un password";	
 			}
-			
+		
+			stat.close();
+			conDB.close();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -143,24 +150,28 @@ public class ValidaLogin extends HttpServlet{
 		ResultSet result = null;
 		String error="OK";
 		String nombre = "";
+		Statement stat =  null;
+		Connection conDB;
 		try {
+			conDB = datSources.getConnection();
+			stat = conDB.createStatement();
 			String user = request.getParameter("nameUser");
 			nombre = request.getParameter("nombre");
 			String clave = request.getParameter("password");
 			if(user!= null && clave!=null && nombre != null){
-			result = stat.executeQuery("SELECT login FROM LOGIN WHERE login = '"+user+"'");
+			result = stat.executeQuery("SELECT login FROM logins.login WHERE login = '"+user+"'");
 			
-			if(result.next()){
-				if(!result.getString("login").equals(user)){
-					result = stat.executeQuery("INSERT INTO login VALUES('"+user+"','"+clave+"',"+"'"+nombre+"'");
-				}else{
-					error = "El usuario introducido ya existe";
-				}
-				
+			if(!result.next()){
+					stat.executeUpdate("INSERT INTO logins.login (login, clave, nombre) VALUES ('"+user+"', '"+clave+"', "+"'"+nombre+"')");
+					error = "OK";
+			}else{
+				error = "El usuario introducido ya existe";
 			}
 			}else{
 				error = "Debes introducir todos los campos";
 			}
+			conDB.close();
+			stat.close();
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
